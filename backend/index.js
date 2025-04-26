@@ -75,28 +75,33 @@ app.post("/login-user", async (req, res) => {
     return res.status(400).json({ error: true, message: "All fields required" });
   }
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ error: true, message: "User not found" });
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: true, message: "User not found" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: true, message: "Invalid password" });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: user._id, role: "user" },
+      process.env.ACCESS_TOKEN,
+      { expiresIn: "72h" }
+    );
+
+    return res.status(200).json({
+      error: false,
+      message: "Login successful",
+      user: { fullName: user.fullName, email: user.email },
+      accessToken
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    return res.status(500).json({ error: true, message: "Server error" });
   }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(400).json({ error: true, message: "Invalid Password" });
-  }
-
-  const accessToken = jwt.sign(
-    { userId: user._id, role: "user" },
-    process.env.ACCESS_TOKEN,
-    { expiresIn: "72h" }
-  );
-
-  return res.status(200).json({
-    error: false,
-    message: "User Login Successfully",
-    user: { fullName: user.fullName, email: user.email },
-    accessToken,
-  });
 });
 
 // -----------------------------------
@@ -152,12 +157,12 @@ app.post("/login-admin", async (req, res) => {
   try {
     const admin = await Admin.findOne({ email });
     if (!admin) {
-      return res.status(400).json({ error: true, message: "Admin not found" });
+      return res.status(404).json({ error: true, message: "Admin not found" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ error: true, message: "Invalid Password" });
+      return res.status(401).json({ error: true, message: "Invalid Password" });
     }
 
     const accessToken = jwt.sign(
@@ -167,7 +172,7 @@ app.post("/login-admin", async (req, res) => {
     );
 
     // Fetch all users for admin to see
-    const users = await User.find({}, { password: 0 }); // Exclude the password field
+    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 }); // Exclude the password field
 
     return res.status(200).json({
       error: false,
@@ -256,21 +261,4 @@ server.on('error', (err) => {
   }
 });
 
-module.exports = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: true, message: "No token provided" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN);
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ error: true, message: "Admin access required" });
-    }
-    req.adminId = decoded.adminId;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: true, message: "Invalid token" });
-  }
-};
+module.exports = app;
