@@ -8,6 +8,7 @@ const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
+const router = express.Router();
 
 
 
@@ -21,10 +22,12 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: "http://localhost:3000", // Your frontend URL
-  methods: ["GET", "POST", "DELETE"], // Allowed HTTP methods
+
+  origin: "http://localhost:8002", // Your frontend URL
+  methods: ["GET", "POST", "DELETE","PUT"], // Allowed HTTP methods
   credentials: true // Allow cookies if using sessions
 }));
+
 
 // -----------------------------------
 //  User Registration
@@ -68,7 +71,8 @@ app.post("/register-user", async (req, res) => {
 // -----------------------------------
 //  User Login
 // -----------------------------------
-app.post("/login-user", async (req, res) => {
+// Enhanced User Login
+router.post("/login-user", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -95,7 +99,12 @@ app.post("/login-user", async (req, res) => {
     return res.status(200).json({
       error: false,
       message: "Login successful",
-      user: { fullName: user.fullName, email: user.email },
+      user: { 
+        _id: user._id,
+        fullName: user.fullName, 
+        email: user.email,
+        createdAt: user.createdAt
+      },
       accessToken
     });
   } catch (err) {
@@ -103,6 +112,7 @@ app.post("/login-user", async (req, res) => {
     return res.status(500).json({ error: true, message: "Server error" });
   }
 });
+
 
 // -----------------------------------
 //  Admin Registration
@@ -147,7 +157,7 @@ app.post("/register-admin", async (req, res) => {
 //  Admin Login
 // -----------------------------------
 // Admin Login
-app.post("/login-admin", async (req, res) => {
+router.post("/login-admin", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -171,24 +181,39 @@ app.post("/login-admin", async (req, res) => {
       { expiresIn: "72h" }
     );
 
-    // Fetch all users for admin to see
-    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 }); // Exclude the password field
+    // Fetch all users with createdAt field
+    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 });
 
     return res.status(200).json({
       error: false,
-      message: "Admin Login Successfully",
-      admin: { fullName: admin.fullName, email: admin.email },
-      users, // Send the list of users
-      accessToken,
+      message: "Admin Login Successful",
+      admin: { 
+        _id: admin._id,
+        fullName: admin.fullName, 
+        email: admin.email 
+      },
+      users,
+      accessToken
     });
+
   } catch (err) {
     console.error("Error:", err);
-    return res.status(500).json({ error: true, message: "Server error. Please try again." });
+    return res.status(500).json({ 
+      error: true, 
+      message: "Server error during admin login" 
+    });
   }
 });
 
+// Error handling middleware
+app.use((req, res, next) => {
+  res.status(404).json({ error: true, message: "Endpoint not found" });
+});
 
-
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: true, message: "Internal server error" });
+});
 
 // get all users only admin
 app.get("/all-users", verifyAdmin, async (req, res) => {
@@ -243,11 +268,12 @@ app.delete("/all-users/:userId", verifyAdmin, async (req, res) => {
 
 
 
-const PORT = process.env.PORT || 8001; // Use environment variable or default to 8001
+const PORT = process.env.PORT || 8002; // Use environment variable or default to 8001
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
@@ -260,5 +286,10 @@ server.on('error', (err) => {
     console.error('Server error:', err);
   }
 });
+
+
+function goHome() {
+  window.location.href = window.location.origin;
+}
 
 module.exports = app;

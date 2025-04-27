@@ -142,47 +142,54 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.2);
-  z-index: 1001;
   width: 80%;
   max-width: 900px;
   max-height: 80vh;
   overflow: auto;
+  z-index: 1001;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
 }
 
 .admin-dashboard table {
   width: 100%;
   border-collapse: collapse;
-  margin: 15px 0;
+  margin-top: 15px;
 }
 
 .admin-dashboard th, 
 .admin-dashboard td {
-  padding: 10px;
+  padding: 12px 15px;
   border: 1px solid #ddd;
   text-align: left;
 }
 
 .admin-dashboard th {
   background-color: #f5f5f5;
+  position: sticky;
+  top: 0;
 }
 
 .delete-btn {
   background: #ff4444;
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.3s;
+}
+
+.delete-btn:hover {
+  background: #cc0000;
 }
 
 .close-btn {
   display: block;
-  margin-top: 15px;
-  padding: 8px 15px;
+  margin-top: 20px;
+  padding: 8px 16px;
   background: #b22222;
   color: white;
   border: none;
@@ -326,7 +333,9 @@
   }
 
   // User Registration
-  document.querySelector('#registerModal button').onclick = async () => {
+  // Modify the registration function:
+// Modify the registration function:
+document.querySelector('#registerModal button').onclick = async () => {
   const inputs = document.querySelectorAll('#registerModal input');
   const username = inputs[0].value;
   const email = inputs[1].value;
@@ -356,8 +365,12 @@
       alert('Registration successful! Please login.');
       registerModal.style.display = 'none';
       overlay.style.display = 'none';
-      // Clear form
+      // Clear form but DON'T show logout button
       inputs.forEach(input => input.value = '');
+      
+      // Ensure login/register buttons remain visible
+      loginBtn.style.display = 'block';
+      registerBtn.style.display = 'block';
     }
   } catch (error) {
     alert('Registration failed. Please try again.');
@@ -365,102 +378,60 @@
   }
 };
 
+// Change the login function to:
 async function loginUser() {
-  const email = document.getElementById('usernameInput').value;
-  const password = document.getElementById('passwordInput').value;
-  
+  const usernameInput = document.getElementById('usernameInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const email = usernameInput.value; // Using email for login
+  const password = passwordInput.value;
+
   if (!email || !password) {
     alert('Please enter both email and password');
     return;
   }
-  
+
   try {
     const response = await fetch('http://localhost:8002/login-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json' // Explicitly expect JSON
+      },
       body: JSON.stringify({ email, password })
     });
-    
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Login failed');
+    }
+
     const data = await response.json();
     
-    if (data.error) {
-      alert(data.message); // "User not found" or "Invalid password"
-    } else {
-      // Successful login
-      currentUser = data.user;
-      userInfo.innerHTML = `Welcome, ${currentUser.fullName}!`;
-      loginModal.style.display = 'none';
-      overlay.style.display = 'none';
-      
-      // Store session
-      localStorage.setItem('token', data.accessToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Update UI
-      loginBtn.style.display = 'none';
-      registerBtn.style.display = 'none';
-      const logoutBtn = document.createElement('a');
-      logoutBtn.href = '#';
-      logoutBtn.textContent = 'Logout';
-      logoutBtn.onclick = logoutUser;
-      document.querySelector('.nav-right').prepend(logoutBtn);
-    }
+    // Handle successful login...
+    currentUser = data.user;
+    userInfo.innerHTML = `Welcome, ${currentUser.fullName}!`;
+    loginModal.style.display = 'none';
+    overlay.style.display = 'none';
+    
+    localStorage.setItem('token', data.accessToken);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    // Update UI
+    loginBtn.style.display = 'none';
+    registerBtn.style.display = 'none';
+    const logoutBtn = document.createElement('a');
+    logoutBtn.href = '#';
+    logoutBtn.textContent = 'Logout';
+    logoutBtn.onclick = logoutUser;
+    document.querySelector('.nav-right').prepend(logoutBtn);
   } catch (error) {
-    alert('Login failed. Please try again later.');
+    alert(error.message || 'Login failed. Please try again.');
     console.error('Login error:', error);
   }
 }
-  // User Login
-  async function loginUser() {
-    const username = document.getElementById('usernameInput').value;
-    const password = document.getElementById('passwordInput').value;
-    
-    if (!username || !password) {
-      alert('Please enter both username and password');
-      return;
-    }
-    
-    try {
-      // In a real app, you would check if it's email or username
-      const response = await fetch('http://localhost:8002/login-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: username, // Using username as email for simplicity
-          password 
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        alert(data.message);
-      } else {
-        currentUser = data.user;
-        userInfo.innerHTML = `Welcome, ${currentUser.fullName}!`;
-        loginModal.style.display = 'none';
-        overlay.style.display = 'none';
-        // Store token in localStorage 
-        localStorage.setItem('token', data.accessToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Hide login/register, show logout
-        loginBtn.style.display = 'none';
-        registerBtn.style.display = 'none';
-        const logoutBtn = document.createElement('a');
-        logoutBtn.href = '#';
-        logoutBtn.textContent = 'Logout';
-        logoutBtn.onclick = logoutUser;
-        document.querySelector('.nav-right').prepend(logoutBtn);
-      }
-    } catch (error) {
-      alert('Login failed. Please try again.');
-      console.error('Login error:', error);
-    }
-  }
-
   // Admin Login
-  document.querySelector('#adminModal button').onclick = async () => {
+// Fix the admin login function:
+document.querySelector('#adminModal button').onclick = async () => {
   const inputs = document.querySelectorAll('#adminModal input');
   const email = inputs[0].value;
   const password = inputs[1].value;
@@ -473,24 +444,26 @@ async function loginUser() {
   try {
     const response = await fetch('http://localhost:8002/login-admin', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ email, password })
     });
-    
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Admin login failed');
+    }
+
     const data = await response.json();
     
-    if (data.error) {
-      alert(data.message);
-    } else {
-      // Store admin data
-      localStorage.setItem('adminToken', data.accessToken);
-      localStorage.setItem('admin', JSON.stringify(data.admin));
-      
-      // Display admin dashboard with users
-      showAdminDashboard(data.users);
-    }
+    // Handle successful admin login...
+    localStorage.setItem('adminToken', data.accessToken);
+    localStorage.setItem('admin', JSON.stringify(data.admin));
+    showAdminDashboard(data.users);
   } catch (error) {
-    alert('Admin login failed. Please try again.');
+    alert(error.message || 'Admin login failed. Please try again.');
     console.error('Admin login error:', error);
   }
 };
@@ -530,42 +503,6 @@ async function loginUser() {
     }
   };
 
-  // Show Admin Dashboard
-  document.querySelector('#adminModal button').onclick = async () => {
-  const inputs = document.querySelectorAll('#adminModal input');
-  const email = inputs[0].value;
-  const password = inputs[1].value;
-  
-  if (!email || !password) {
-    alert('Please enter both admin email and password');
-    return;
-  }
-  
-  try {
-    const response = await fetch('http://localhost:8002/login-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    
-    const data = await response.json();
-    
-    if (data.error) {
-      alert(data.message); // "Admin not found" or "Invalid password"
-    } else {
-      // Successful admin login
-      showAdminDashboard(data.users); // Pass the users data to dashboard
-      
-      // Store admin session
-      localStorage.setItem('adminToken', data.accessToken);
-      localStorage.setItem('admin', JSON.stringify(data.admin));
-    }
-  } catch (error) {
-    alert('Admin login failed. Please try again later.');
-    console.error('Admin login error:', error);
-  }
-};
-
 // Enhanced Admin Dashboard
 function showAdminDashboard(users) {
   closeAllModals();
@@ -574,84 +511,108 @@ function showAdminDashboard(users) {
   dashboard.className = 'admin-dashboard';
   dashboard.innerHTML = `
     <h2>User Management</h2>
-    <p>Total Registered Users: ${users.length}</p>
-    <table>
-      <thead>
-        <tr>
-          <th>No.</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Registered On</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${users.map((user, index) => `
+    <div class="user-count">Total Users: ${users.length}</div>
+    <div class="table-container">
+      <table>
+        <thead>
           <tr>
-            <td>${index + 1}</td>
-            <td>${user.fullName}</td>
-            <td>${user.email}</td>
-            <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-            <td>
-              <button onclick="deleteUser('${user._id}')" class="delete-btn">Delete</button>
-            </td>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Registered Date</th>
+            <th>Actions</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${users.map(user => `
+            <tr>
+              <td>${user._id}</td>
+              <td>${user.fullName}</td>
+              <td>${user.email}</td>
+              <td>${new Date(user.createdAt).toLocaleString()}</td>
+              <td>
+                <button onclick="deleteUser('${user._id}')" class="delete-btn">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
     <button onclick="document.body.removeChild(this.parentNode)" class="close-btn">
       Close Dashboard
     </button>
   `;
   
+  // Add some styling
+  const style = document.createElement('style');
+  style.textContent = `
+    .admin-dashboard {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .user-count {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+  `;
+  dashboard.appendChild(style);
+  
   document.body.appendChild(dashboard);
 }
-  // Delete User (Admin function)
-  async function deleteUser(userId) {
+
+// Fix the deleteUser function in index.html
+async function deleteUser(userId) {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:8002/all-users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            alert('Admin session expired. Please login again.');
+            return;
         }
-      });
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        alert(data.message);
-      } else {
-        alert('User deleted successfully');
-        // Refresh the admin dashboard
-        const admin = JSON.parse(localStorage.getItem('admin'));
-        const adminResponse = await fetch('http://localhost:8002/login-admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: admin.email,
-            password: 'dummy' // In a real app, you should handle this differently
-          })
+
+        const response = await fetch(`http://localhost:8002/all-users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
         });
         
-        const adminData = await adminResponse.json();
-        if (!adminData.error) {
-          // Remove existing dashboard if any
-          const existingDashboard = document.querySelector('div[style*="position: fixed; top: 0;"]');
-          if (existingDashboard) document.body.removeChild(existingDashboard);
-          
-          showAdminDashboard(adminData.users);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(data.message);
+        } else {
+            alert('User deleted successfully');
+            // Refresh the admin dashboard
+            const admin = JSON.parse(localStorage.getItem('admin'));
+            const adminResponse = await fetch('http://localhost:8002/login-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: admin.email,
+                    password: prompt("Please enter your admin password to refresh:") 
+                })
+            });
+            
+            const adminData = await adminResponse.json();
+            if (!adminData.error) {
+                document.querySelector('.admin-dashboard').remove();
+                showAdminDashboard(adminData.users);
+            }
         }
-      }
     } catch (error) {
-      alert('Failed to delete user');
-      console.error('Delete user error:', error);
+        console.error('Delete user error:', error);
+        alert('Failed to delete user. Check console for details.');
     }
-  }
-
+}
   // Logout function
   function logoutUser() {
     currentUser = null;
@@ -670,27 +631,12 @@ function showAdminDashboard(users) {
     // If admin is logged in, clear admin data too
     localStorage.removeItem('adminToken');
     localStorage.removeItem('admin');
-  }
+  
 
-  // Check if user is already logged in on page load
-  window.onload = () => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      currentUser = JSON.parse(user);
-      userInfo.innerHTML = `Welcome, ${currentUser.fullName}!`;
-      
-      // Hide login/register, show logout
-      loginBtn.style.display = 'none';
-      registerBtn.style.display = 'none';
-      const logoutBtn = document.createElement('a');
-      logoutBtn.href = '#';
-      logoutBtn.textContent = 'Logout';
-      logoutBtn.onclick = logoutUser;
-      document.querySelector('.nav-right').prepend(logoutBtn);
-    }
-  };
+  
+     // Redirect to home
+    window.location.href = window.location.origin;
+  }
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
