@@ -8,7 +8,6 @@ const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const router = express.Router();
 
 
 
@@ -21,17 +20,13 @@ mongoose
 const app = express();
 
 app.use(express.json());
-app.use(cors({
-
-  origin: "http://localhost:8002", // Your frontend URL
-  methods: ["GET", "POST", "DELETE","PUT"], // Allowed HTTP methods
-  credentials: true // Allow cookies if using sessions
+app.use(cors({ 
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 
-// -----------------------------------
-//  User Registration
-// -----------------------------------
 app.post("/register-user", async (req, res) => {
   const { fullName, email, password } = req.body;
 
@@ -68,60 +63,44 @@ app.post("/register-user", async (req, res) => {
   }
 });
 
-// -----------------------------------
-//  User Login
-// -----------------------------------
-// Enhanced User Login
-router.post("/login-user", async (req, res) => {
+
+app.post("/login-user", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: true, message: "All fields required" });
   }
 
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: true, message: "User not found" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: true, message: "Invalid password" });
-    }
-
-    const accessToken = jwt.sign(
-      { userId: user._id, role: "user" },
-      process.env.ACCESS_TOKEN,
-      { expiresIn: "72h" }
-    );
-
-    return res.status(200).json({
-      error: false,
-      message: "Login successful",
-      user: { 
-        _id: user._id,
-        fullName: user.fullName, 
-        email: user.email,
-        createdAt: user.createdAt
-      },
-      accessToken
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    return res.status(500).json({ error: true, message: "Server error" });
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(400).json({ error: true, message: "User not found" });
   }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return res.status(400).json({ error: true, message: "Invalid Password" });
+  }
+
+  const accessToken = jwt.sign(
+    { userId: user._id, role: "user" },
+    process.env.ACCESS_TOKEN,
+    { expiresIn: "72h" }
+  );
+
+  return res.status(200).json({
+    error: false,
+    message: "User Login Successfully",
+    user: { fullName: user.fullName, email: user.email },
+    accessToken,
+  });
 });
 
 
-// -----------------------------------
-//  Admin Registration
-// -----------------------------------
 app.post("/register-admin", async (req, res) => {
   const { fullName, email, password } = req.body;
 
   if (!fullName || !email || !password) {
-    return res.status(400).json({ error: true, message: "All fields required" });
+    return res.status(400).json({ error: true, message: " fieAlllds required" });
   }
 
   try {
@@ -153,66 +132,36 @@ app.post("/register-admin", async (req, res) => {
   }
 });
 
-// -----------------------------------
-//  Admin Login
-// -----------------------------------
-// Admin Login
-router.post("/login-admin", async (req, res) => {
+
+app.post("/login-admin", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: true, message: "All fields required" });
   }
 
-  try {
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res.status(404).json({ error: true, message: "Admin not found" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: true, message: "Invalid Password" });
-    }
-
-    const accessToken = jwt.sign(
-      { adminId: admin._id, role: "admin" },
-      process.env.ACCESS_TOKEN,
-      { expiresIn: "72h" }
-    );
-
-    // Fetch all users with createdAt field
-    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 });
-
-    return res.status(200).json({
-      error: false,
-      message: "Admin Login Successful",
-      admin: { 
-        _id: admin._id,
-        fullName: admin.fullName, 
-        email: admin.email 
-      },
-      users,
-      accessToken
-    });
-
-  } catch (err) {
-    console.error("Error:", err);
-    return res.status(500).json({ 
-      error: true, 
-      message: "Server error during admin login" 
-    });
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    return res.status(400).json({ error: true, message: "Admin not found" });
   }
-});
 
-// Error handling middleware
-app.use((req, res, next) => {
-  res.status(404).json({ error: true, message: "Endpoint not found" });
-});
+  const isPasswordValid = await bcrypt.compare(password, admin.password);
+  if (!isPasswordValid) {
+    return res.status(400).json({ error: true, message: "Invalid Password" });
+  }
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: true, message: "Internal server error" });
+  const accessToken = jwt.sign(
+    { adminId: admin._id, role: "admin" },
+    process.env.ACCESS_TOKEN,
+    { expiresIn: "72h" }
+  );
+
+  return res.status(200).json({
+    error: false,
+    message: "Admin Login Successfully",
+    admin: { fullName: admin.fullName, email: admin.email },
+    accessToken,
+  });
 });
 
 // get all users only admin
@@ -235,61 +184,24 @@ app.get("/all-users", verifyAdmin, async (req, res) => {
   }
 });
 
-// Add this route to your index.js (before the app.listen)
 
-// Delete user (admin only)
-app.delete("/all-users/:userId", verifyAdmin, async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ 
-        error: true, 
-        message: "User not found" 
-      });
-    }
-    
-    await User.findByIdAndDelete(userId);
-    
-    return res.status(200).json({
-      error: false,
-      message: "User deleted successfully"
-    });
-  } catch (err) {
-    console.error("Error:", err);
-    return res.status(500).json({ 
-      error: true, 
-      message: "Server error. Please try again." 
-    });
-  }
-});
-
-
-
-const PORT = process.env.PORT || 8002; // Use environment variable or default to 8001
-
-const server = app.listen(PORT, "0.0.0.0", () => {
+const PORT = 8000;
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.log(`Port ${PORT} is in use, trying port ${Number(PORT)+1}...`);
-    const newPort = Number(PORT) + 1;
-    const newServer = app.listen(newPort, "0.0.0.0", () => {
-      console.log(`Server running on port ${newPort}`);
-    });
-  } else {
-    console.error('Server error:', err);
-  }
-});
 
 
-function goHome() {
-  window.location.href = window.location.origin;
-}
+
+
+
+
+
+
+
+
+
+app.listen(8000, "0.0.0.0", () => console.log("Server running on port 8000"));
 
 module.exports = app;

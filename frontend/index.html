@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin/User Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #2d3748;
+    }
+
+    .center {
+      text-align: center;
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 420px;
+      transition: all 0.3s ease;
+    }
+
+    h1 {
+      color: #2b6cb0;
+      margin-bottom: 1.8rem;
+      font-size: 2.2rem;
+    }
+
+    h2 {
+      color: #2b6cb0;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+    }
+
+    button {
+      margin: 0.7rem auto;
+      padding: 0.9rem 1.8rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      width: 85%;
+      display: block;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background-color: #3182ce;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.back {
+      background-color: #e2e8f0;
+      color: #4a5568;
+    }
+
+    button.back:hover {
+      background-color: #cbd5e0;
+    }
+
+    input {
+      display: block;
+      margin: 1.2rem auto;
+      padding: 0.9rem;
+      width: 85%;
+      font-size: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #users-container {
+      margin: 1.5rem 0;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 0 1rem;
+    }
+
+    .user-card {
+      background: #f8fafc;
+      padding: 1.2rem;
+      margin: 0.8rem 0;
+      border-radius: 8px;
+      border-left: 4px solid #4299e1;
+      text-align: left;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-card h3 {
+      margin: 0 0 0.5rem 0;
+      color: #2d3748;
+      font-size: 1.1rem;
+    }
+
+    .user-card p {
+      margin: 0.3rem 0;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+
+    #message-text {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      font-size: 1.2rem;
+    }
+
+    #message-text strong {
+      color: #2b6cb0;
+      font-size: 1.3em;
+    }
+
+    @media (max-width: 480px) {
+      .center {
+        padding: 1.8rem;
+        width: 85%;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      button, input {
+        width: 90%;
+        padding: 0.8rem;
+      }
+    }
+  </style> -->
+</head>
+<body>
+
+  <!-- Main Screen -->
+  <div id="main-screen" class="center">
+    <h1>Welcome</h1>
+    <button onclick="selectRole('admin')">Admin</button>
+    <button onclick="selectRole('user')">User</button>
+  </div>
+
+  <!-- Choose Action (Login/Register) Screen -->
+  <div id="choose-action" class="hidden center">
+    <h2 id="role-title"></h2>
+    <button onclick="showForm('register')">Register</button>
+    <button onclick="showForm('login')">Login</button>
+    <button class="back" onclick="backToMain()">Back</button>
+  </div>
+
+  <!-- Register Form -->
+  <div id="register-form" class="hidden center">
+    <h2 id="register-title"></h2>
+    <input type="text" id="fullName" placeholder="Full Name" required />
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button onclick="register()">Register</button>
+    <button class="back" onclick="backToMain()">Back</button>
+  </div>
+
+  <!-- Login Form -->
+  <div id="login-form" class="hidden center">
+    <h2 id="login-title"></h2>
+    <input type="email" id="loginEmail" placeholder="Email" required />
+    <input type="password" id="loginPassword" placeholder="Password" required />
+    <button onclick="login()">Login</button>
+    <button class="back" onclick="backToMain()">Back</button>
+  </div>
+
+  <!-- Success Message -->
+  <div id="message" class="hidden center">
+    <h2 id="message-text"></h2>
+    <button class="back" onclick="backToMain()">Back to Home</button>
+  </div>
+
+  <!-- User List (for Admin after login) -->
+  <div id="user-list" class="hidden center">
+    <h2>All Registered Users</h2>
+    <div id="users-container"></div>
+    <button class="back" onclick="backToMain()">Back to Home</button>
+  </div>
+
+  <script>
+    let role = ""; // admin or user
+
+    function selectRole(selectedRole) {
+      role = selectedRole;
+      document.getElementById("main-screen").classList.add("hidden");
+      document.getElementById("choose-action").classList.remove("hidden");
+      document.getElementById("role-title").innerText = `${role.charAt(0).toUpperCase() + role.slice(1)} Portal`;
+    }
+
+    function showForm(action) {
+      document.getElementById("choose-action").classList.add("hidden");
+
+      if (action === 'register') {
+        document.getElementById("register-form").classList.remove("hidden");
+        document.getElementById("register-title").innerText = `${role.charAt(0).toUpperCase() + role.slice(1)} Registration`;
+      } else if (action === 'login') {
+        document.getElementById("login-form").classList.remove("hidden");
+        document.getElementById("login-title").innerText = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
+      }
+    }
+
+    function backToMain() {
+      document.getElementById("main-screen").classList.remove("hidden");
+      document.getElementById("choose-action").classList.add("hidden");
+      document.getElementById("register-form").classList.add("hidden");
+      document.getElementById("login-form").classList.add("hidden");
+      document.getElementById("message").classList.add("hidden");
+      document.getElementById("user-list").classList.add("hidden");
+      clearInputs();
+      role = "";
+    }
+
+    function clearInputs() {
+      document.getElementById("fullName").value = "";
+      document.getElementById("email").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("loginEmail").value = "";
+      document.getElementById("loginPassword").value = "";
+    }
+
+    async function register() {
+      const fullName = document.getElementById("fullName").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      if (!fullName || !email || !password) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:8000/register-${role}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fullName, email, password }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.message || "Registration failed.");
+        } else {
+          alert(data.message);
+          document.getElementById("register-form").classList.add("hidden");
+          document.getElementById("login-form").classList.remove("hidden");
+          document.getElementById("login-title").innerText = `${role.charAt(0).toUpperCase() + role.slice(1)} Login`;
+          clearInputs();
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Something went wrong during registration.");
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:8000/login-${role}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || "Login failed.");
+          return;
+        }
+
+        if (role === "admin") {
+          localStorage.setItem("token", data.accessToken);
+          fetchAllUsers();
+        } else {
+          document.getElementById("login-form").classList.add("hidden");
+          document.getElementById("message").classList.remove("hidden");
+          document.getElementById("message-text").innerHTML = `
+            Welcome back, <strong>${data.user.fullName}</strong>!<br>
+            You've successfully logged in to your account.
+          `;
+          clearInputs();
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Something went wrong during login.");
+      }
+    }
+
+    async function fetchAllUsers() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Access Denied. No Token Provided.");
+          backToMain();
+          return;
+        }
+
+        const response = await fetch("http://localhost:8000/all-users", {
+          method: "GET",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || "Failed to fetch users.");
+          backToMain();
+        } else {
+          showUsers(data.users);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Failed to fetch users.");
+        backToMain();
+      }
+    }
+
+    function showUsers(users) {
+      document.getElementById("login-form").classList.add("hidden");
+      document.getElementById("user-list").classList.remove("hidden");
+
+      const userListDiv = document.getElementById("users-container");
+      userListDiv.innerHTML = "";
+
+      if (users.length === 0) {
+        userListDiv.innerHTML = "<p>No users found</p>";
+        return;
+      }
+
+      users.forEach(user => {
+        const userCard = document.createElement("div");
+        userCard.classList.add("user-card");
+        userCard.innerHTML = `
+          <h3>${user.fullName}</h3>
+          <p>Email: ${user.email}</p>
+          ${user.createdAt ? `<p>Joined: ${new Date(user.createdAt).toLocaleDateString()}</p>` : ''}
+        `;
+        userListDiv.appendChild(userCard);
+      });
+    }
+  </script>
+</body>
+</html>
